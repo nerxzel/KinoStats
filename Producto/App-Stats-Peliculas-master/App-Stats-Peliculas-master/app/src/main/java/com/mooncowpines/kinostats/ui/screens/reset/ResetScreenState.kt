@@ -1,0 +1,14 @@
+package com.mooncowpines.kinostats.ui.screens.reset
+
+data class ResetScreenState(
+    val code: String = "",
+    val pass: String = "",
+    val passCheck: String = "",
+    val codeError: String? = "",
+    val passError: String? = null,
+    val passCheckError: String? = null,
+    val isSubmitting: Boolean = false,
+    val canSubmit: Boolean = false,
+    val success: Boolean = false,
+    val errorMsg: String? = null
+)

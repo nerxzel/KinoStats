@@ -1,0 +1,204 @@
+package com.mooncowpines.kinostats.ui.screens.reset
+
+import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+
+import com.mooncowpines.kinostats.ui.theme.KinoYellow
+import com.mooncowpines.kinostats.ui.components.KinoButton
+import com.mooncowpines.kinostats.ui.components.KinoErrorText
+import com.mooncowpines.kinostats.ui.components.KinoFrame
+import com.mooncowpines.kinostats.ui.components.KinoTextField
+import com.mooncowpines.kinostats.ui.components.PasswordRequirementsFeedback
+import com.mooncowpines.kinostats.ui.components.PasswordMatchFeedback
+import com.mooncowpines.kinostats.ui.theme.KinoSpacing
+
+@Composable
+fun ResetScreen(
+    modifier: Modifier = Modifier,
+    viewModel: ResetScreenViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
+
+    val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(state.success) {
+        if (state.success) {
+            Toast.makeText(context, "Password changed successfully!", Toast.LENGTH_LONG).show()
+            onNavigateToLogin()
+        }
+    }
+
+    Box(Modifier.fillMaxSize().padding(30.dp)) {
+        Reset(
+            modifier = Modifier.align(Alignment.Center),
+            state = state,
+            onCodeChange = { viewModel.onCodeChange(it)},
+            onPassChange = { viewModel.onPassChange(it) },
+            onPassCheckChange = { viewModel.onPassCheckChange(it) },
+            onResetClick = { viewModel.reset() },
+            onCancelClick = onNavigateBack,
+            onNavigateToLogin = {}
+        )
+    }
+}
+
+@Composable
+fun Reset(
+    modifier: Modifier,
+    state: ResetScreenState,
+    onPassChange: (String) -> Unit,
+    onPassCheckChange: (String) -> Unit,
+    onCodeChange: (String) -> Unit,
+    onResetClick: () -> Unit,
+    onCancelClick: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Column(modifier = modifier.verticalScroll(scrollState).imePadding(), horizontalAlignment = Alignment.CenterHorizontally) {
+
+        //Header banner
+        Text(
+            text = "Please Enter Your New Password",
+            color = KinoYellow,
+            fontSize = 30.sp,
+            fontStyle = FontStyle.Italic,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+
+        //Frame to wrap the form
+        KinoFrame {
+            //Password text field
+            Column {
+                Text(
+                    text = "6-Digit Code:",
+                    color = KinoYellow,
+                )
+                HorizontalDivider(
+                    color = KinoYellow,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(top = KinoSpacing.micro, bottom = KinoSpacing.small)
+                )
+                KinoTextField(
+                    textValue = state.code,
+                    onTextChange = onCodeChange,
+                    placeholderText = "000000",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(KinoSpacing.medium))
+
+
+            Column {
+                Text(
+                    text = "New Password:",
+                    color = KinoYellow,
+                )
+                HorizontalDivider(
+                    color = KinoYellow,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(
+                        top = KinoSpacing.micro,
+                        bottom = KinoSpacing.small)
+                )
+                KinoTextField(
+                    textValue = state.pass,
+                    onTextChange = onPassChange,
+                    placeholderText = "Password",
+                    isPassword = true,
+                    modifier = Modifier.fillMaxWidth())
+                //Visual feedback to password requirements
+                PasswordRequirementsFeedback(state.pass)
+            }
+
+            Spacer(modifier = Modifier.height(KinoSpacing.medium))
+            //Password check test field
+            Column {
+                Text(
+                    text = "Confirm New Password:",
+                    color = KinoYellow,
+                )
+                HorizontalDivider(
+                    color = KinoYellow,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(
+                        top = KinoSpacing.micro,
+                        bottom = KinoSpacing.small)
+                )
+                KinoTextField(
+                    textValue = state.passCheck,
+                    onTextChange = onPassCheckChange,
+                    placeholderText = "Confirm Password",
+                    isPassword = true,
+                    modifier = Modifier.fillMaxWidth())
+                //Visual feedback for password match
+                PasswordMatchFeedback(state.pass, state.passCheck)
+            }
+
+            Spacer(modifier = Modifier.height(KinoSpacing.medium))
+
+
+            Column {
+                //General error message
+                state.errorMsg?.let { KinoErrorText(message = it) }
+
+                //Buttons section
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(KinoSpacing.medium)
+                ) {
+                    if (state.isSubmitting) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator(color = KinoYellow) }
+                    } else {
+                        KinoButton(
+                            text = "Change",
+                            onClick = onResetClick,
+                            modifier = Modifier.weight(1.5f)
+                        )
+                    }
+
+                    KinoButton(
+                        text = "Cancel",
+                        onClick = onCancelClick,
+                        modifier = Modifier.weight(1f),
+                        enabled = !state.isSubmitting)
+                    }
+                }
+            }
+        }
+    }

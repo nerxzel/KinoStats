@@ -1,0 +1,16 @@
+package com.mooncowpines.kinostats.ui.screens.lists
+
+import com.mooncowpines.kinostats.domain.model.MovieList
+
+data class ListsScreenState(
+    val isLoading: Boolean = true,
+    val lists: List<MovieList> = emptyList(),
+    val errorMsg: String? = null,
+
+    val listToDelete: MovieList? = null,
+    val isDeleting: Boolean = false,
+
+    val showCreateDialog: Boolean = false,
+    val newListName: String = "",
+    val isCreating: Boolean = false
+)
