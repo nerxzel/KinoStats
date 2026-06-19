@@ -22,13 +22,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
 
 import com.mooncowpines.kinostats.ui.theme.KinoYellow
 import com.mooncowpines.kinostats.ui.components.KinoButton
+import com.mooncowpines.kinostats.ui.components.KinoErrorText
 import com.mooncowpines.kinostats.ui.components.KinoFrame
 import com.mooncowpines.kinostats.ui.components.KinoTextField
 import com.mooncowpines.kinostats.ui.components.PasswordRequirementsFeedback
@@ -38,7 +41,7 @@ import com.mooncowpines.kinostats.ui.theme.KinoSpacing
 @Composable
 fun ResetScreen(
     modifier: Modifier = Modifier,
-    viewModel: ResetScreenViewModel = viewModel(),
+    viewModel: ResetScreenViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
@@ -54,12 +57,10 @@ fun ResetScreen(
     }
 
     Box(Modifier.fillMaxSize().padding(30.dp)) {
-        Reset(
+        ResetContent(
             modifier = Modifier.align(Alignment.Center),
-            passValue = state.pass,
-            passCheckValue = state.passCheck,
-            isSubmitting = state.isSubmitting,
-            errorMsg = state.errorMsg,
+            state = state,
+            onCodeChange = { viewModel.onCodeChange(it)},
             onPassChange = { viewModel.onPassChange(it) },
             onPassCheckChange = { viewModel.onPassCheckChange(it) },
             onResetClick = { viewModel.reset() },
@@ -70,19 +71,19 @@ fun ResetScreen(
 }
 
 @Composable
-fun Reset(
+fun ResetContent(
     modifier: Modifier,
-    passValue: String,
-    passCheckValue: String,
-    isSubmitting: Boolean,
-    errorMsg: String?,
+    state: ResetScreenState,
     onPassChange: (String) -> Unit,
     onPassCheckChange: (String) -> Unit,
+    onCodeChange: (String) -> Unit,
     onResetClick: () -> Unit,
     onCancelClick: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+    val scrollState = rememberScrollState()
+
+    Column(modifier = modifier.verticalScroll(scrollState).imePadding(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         //Header banner
         Text(
@@ -100,6 +101,27 @@ fun Reset(
             //Password text field
             Column {
                 Text(
+                    text = "6-Digit Code:",
+                    color = KinoYellow,
+                )
+                HorizontalDivider(
+                    color = KinoYellow,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(top = KinoSpacing.micro, bottom = KinoSpacing.small)
+                )
+                 KinoTextField(
+                    textValue = state.code,
+                    onTextChange = onCodeChange,
+                    placeholderText = "000000",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(KinoSpacing.medium))
+
+
+            Column {
+                Text(
                     text = "New Password:",
                     color = KinoYellow,
                 )
@@ -111,13 +133,13 @@ fun Reset(
                         bottom = KinoSpacing.small)
                 )
                 KinoTextField(
-                    textValue = passValue,
+                    textValue = state.pass,
                     onTextChange = onPassChange,
                     placeholderText = "Password",
                     isPassword = true,
                     modifier = Modifier.fillMaxWidth())
                 //Visual feedback to password requirements
-                PasswordRequirementsFeedback(passValue)
+                PasswordRequirementsFeedback(state.pass)
             }
 
             Spacer(modifier = Modifier.height(KinoSpacing.medium))
@@ -135,13 +157,13 @@ fun Reset(
                         bottom = KinoSpacing.small)
                 )
                 KinoTextField(
-                    textValue = passCheckValue,
+                    textValue = state.passCheck,
                     onTextChange = onPassCheckChange,
                     placeholderText = "Confirm Password",
                     isPassword = true,
                     modifier = Modifier.fillMaxWidth())
                 //Visual feedback for password match
-                PasswordMatchFeedback(passValue, passCheckValue)
+                PasswordMatchFeedback(state.pass, state.passCheck)
             }
 
             Spacer(modifier = Modifier.height(KinoSpacing.medium))
@@ -149,20 +171,13 @@ fun Reset(
 
             Column {
                 //General error message
-                if (errorMsg != null) {
-                    Text(
-                        text = errorMsg,
-                        color = Color.Red,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = KinoSpacing.small)
-                    )
-                }
+                state.errorMsg?.let { KinoErrorText(message = it) }
 
                 //Buttons section
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(KinoSpacing.medium)
                 ) {
-                    if (isSubmitting) {
+                    if (state.isSubmitting) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -181,7 +196,7 @@ fun Reset(
                         text = "Cancel",
                         onClick = onCancelClick,
                         modifier = Modifier.weight(1f),
-                        enabled = !isSubmitting)
+                        enabled = !state.isSubmitting)
                     }
                 }
             }

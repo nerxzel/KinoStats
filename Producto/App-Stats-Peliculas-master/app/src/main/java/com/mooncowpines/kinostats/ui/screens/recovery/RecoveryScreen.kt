@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
@@ -27,11 +29,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 
 import com.mooncowpines.kinostats.ui.theme.KinoYellow
 import com.mooncowpines.kinostats.ui.components.KinoButton
+import com.mooncowpines.kinostats.ui.components.KinoErrorText
 import com.mooncowpines.kinostats.ui.components.KinoTextField
 import com.mooncowpines.kinostats.ui.components.KinoFrame
 import com.mooncowpines.kinostats.ui.theme.KinoSpacing
@@ -39,25 +42,26 @@ import com.mooncowpines.kinostats.ui.theme.KinoSpacing
 @Composable
 fun RecoveryScreen(
     modifier: Modifier = Modifier,
-    viewModel: RecoveryScreenViewModel = viewModel(),
-    onNavigateBack: () -> Unit
+    viewModel: RecoveryScreenViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit,
+    onNavigateToReset: (String) -> Unit
 ) {
 
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
-    if (state.success) {
-        Toast.makeText(context, "Recovery email sent!", Toast.LENGTH_LONG).show()
-        onNavigateBack()
+    LaunchedEffect(state.success) {
+        if (state.success) {
+            Toast.makeText(context, "Recovery email sent!", Toast.LENGTH_LONG).show()
+            onNavigateToReset(state.email)
+            viewModel.onNavigationDone()
+        }
     }
 
     Box(Modifier.fillMaxSize().padding(30.dp)) {
-        Recovery(
+        RecoveryContent(
             modifier = Modifier.align(Alignment.Center),
-            emailValue = state.email,
-            emailError = state.emailError,
-            isSubmitting = state.isSubmitting,
-            errorMsg = state.errorMsg,
+            state = state,
             onEmailChange = { viewModel.onEmailChange(it) },
             onRecoveryClick = { viewModel.recovery() },
             onCancelClick = onNavigateBack
@@ -66,17 +70,14 @@ fun RecoveryScreen(
 }
 
 @Composable
-fun Recovery(
+fun RecoveryContent(
     modifier: Modifier,
-    emailValue: String,
-    emailError: String?,
-    isSubmitting: Boolean,
-    errorMsg: String?,
+    state: RecoveryScreenState,
     onEmailChange: (String) -> Unit,
     onRecoveryClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = modifier.imePadding(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         //Header banner
         Text(
@@ -105,34 +106,20 @@ fun Recovery(
                         bottom = KinoSpacing.small)
                 )
                 KinoTextField(
-                    textValue = emailValue,
+                    textValue = state.email,
                     onTextChange = onEmailChange,
                     placeholderText = "example@gmail.com",
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (emailError != null) {
-                    Text(
-                        text = emailError,
-                        color = Color.Red,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = KinoSpacing.small)
-                    )
-                }
+
+                state.emailError?.let { KinoErrorText(message = it) }
             }
 
             Spacer(modifier = Modifier.height(KinoSpacing.medium))
 
-
             Column {
                 //General error message
-                if (errorMsg != null) {
-                    Text(
-                        text = errorMsg,
-                        color = Color.Red,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = KinoSpacing.small)
-                    )
-                }
+                state.errorMsg?.let { KinoErrorText(message = it) }
 
                 //Buttons section
                 Row(
@@ -140,7 +127,7 @@ fun Recovery(
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(KinoSpacing.medium)
                 ) {
-                    if (isSubmitting) {
+                    if (state.isSubmitting) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -158,7 +145,7 @@ fun Recovery(
                         text = "Cancel",
                         onClick = onCancelClick,
                         modifier = Modifier.weight(1f),
-                        enabled = !isSubmitting
+                        enabled = !state.isSubmitting
                     )
 
 
@@ -168,7 +155,7 @@ fun Recovery(
 
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "If your email is associated with an account you will receive a link to change your password ",
+            text = "If your email is registered you will receive a link to change your password, please check your spam folder",
             color = KinoYellow,
             textDecoration = TextDecoration.Underline,
             textAlign = TextAlign.Justify,

@@ -2,10 +2,8 @@ package com.mooncowpines.kinostats.ui.screens.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
@@ -27,13 +25,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.imePadding
+import androidx.hilt.navigation.compose.hiltViewModel
 
 import com.mooncowpines.kinostats.R
 import com.mooncowpines.kinostats.ui.theme.KinoYellow
 import com.mooncowpines.kinostats.ui.components.KinoButton
+import com.mooncowpines.kinostats.ui.components.KinoErrorText
 import com.mooncowpines.kinostats.ui.components.KinoFrame
 import com.mooncowpines.kinostats.ui.components.KinoTextField
 import com.mooncowpines.kinostats.ui.theme.KinoDarkYellow
@@ -41,11 +39,10 @@ import com.mooncowpines.kinostats.ui.theme.KinoSpacing
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginScreenViewModel = viewModel(),
     modifier: Modifier = Modifier,
+    viewModel: LoginScreenViewModel = hiltViewModel(),
     onNavigateToRegister: () -> Unit,
     onNavigateToHome: () -> Unit,
-    onNavigateToReset: () -> Unit,
     onNavigateToRecover: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
@@ -62,17 +59,12 @@ fun LoginScreen(
         .padding(KinoSpacing.extraLarge)) {
         Login(
             modifier = Modifier.align(Alignment.Center),
-            emailValue = state.email,
-            passValue = state.pass,
-            isSubmitting = state.isSubmitting,
-            errorMsg = state.errorMsg,
-            onEmailChange = { viewModel.onEmailChange(it) },
+            state = state,
+            onUsernameChange = { viewModel.onUsernameChange(it) },
             onPassChange = { viewModel.onPassChange(it) },
             onLoginClick = { viewModel.login() },
             onRecoveryClick = onNavigateToRecover,
-            onChangeClick = onNavigateToReset,
             onRegisterClick = onNavigateToRegister,
-            onAdminClick = { viewModel.adminLogin() }
         )
     }
 }
@@ -80,17 +72,12 @@ fun LoginScreen(
 @Composable
 fun Login(
     modifier: Modifier,
-    emailValue: String,
-    passValue: String,
-    isSubmitting: Boolean,
-    errorMsg: String?,
-    onEmailChange: (String) -> Unit,
+    state: LoginScreenState,
+    onUsernameChange: (String) -> Unit,
     onPassChange: (String) -> Unit,
     onLoginClick: () -> Unit,
     onRecoveryClick: () -> Unit,
-    onChangeClick: () -> Unit,
     onRegisterClick: () -> Unit,
-    onAdminClick: () -> Unit
 ) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -102,10 +89,10 @@ fun Login(
 
         //Frame to wrap the form
         KinoFrame {
-            //Email field
+            //Username field
             Column{
                 Text(
-                    text = "Email:",
+                    text = "Username:",
                     color = KinoYellow,
                 )
                 HorizontalDivider(
@@ -116,9 +103,9 @@ fun Login(
                         bottom = KinoSpacing.small)
                 )
                 KinoTextField(
-                    textValue = emailValue,
-                    onTextChange = onEmailChange,
-                    placeholderText = "example@gmail.com",
+                    textValue = state.username,
+                    onTextChange = onUsernameChange,
+                    placeholderText = "Your username",
                     modifier = Modifier.fillMaxWidth())
             }
 
@@ -138,7 +125,7 @@ fun Login(
                         bottom = KinoSpacing.small)
                 )
                 KinoTextField(
-                    textValue = passValue,
+                    textValue = state.pass,
                     onTextChange = onPassChange,
                     placeholderText = "Password",
                     isPassword = true,
@@ -152,14 +139,7 @@ fun Login(
 
             Column{
                 //General error message
-                if (errorMsg != null) {
-                    Text(
-                        text = errorMsg,
-                        color = Color.Red,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = KinoSpacing.small)
-                    )
-                }
+                state.errorMsg?.let { KinoErrorText(it) }
 
                 //Buttons section
                 Text(
@@ -168,7 +148,7 @@ fun Login(
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier.padding(bottom = KinoSpacing.small)
                 )
-                if (isSubmitting) {
+                if (state.isSubmitting) {
                     Box(modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -187,22 +167,9 @@ fun Login(
                     text = "Create Account",
                     onClick = onRegisterClick,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSubmitting)
+                    enabled = !state.isSubmitting)
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(KinoSpacing.mediumSmall)) {
-                KinoButton(
-                    text = "Test",
-                    onClick = onChangeClick,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isSubmitting)
-
-                KinoButton(
-                    text = "Admin",
-                    onClick = onAdminClick,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isSubmitting)
-            }
         }
     }
 }

@@ -8,7 +8,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
-import com.mooncowpines.kinostats.data.FakeMovieApi
 import com.mooncowpines.kinostats.ui.screens.home.HomeScreen
 import com.mooncowpines.kinostats.ui.screens.login.LoginScreen
 import com.mooncowpines.kinostats.ui.screens.register.RegisterScreen
@@ -16,20 +15,27 @@ import com.mooncowpines.kinostats.ui.screens.recovery.RecoveryScreen
 import com.mooncowpines.kinostats.ui.screens.reset.ResetScreen
 import com.mooncowpines.kinostats.ui.screens.profile.ProfileScreen
 import com.mooncowpines.kinostats.ui.screens.change.ChangeScreen
-import com.mooncowpines.kinostats.ui.screens.review.ReviewScreen
+import com.mooncowpines.kinostats.ui.screens.listDetail.ListDetailScreen
+import com.mooncowpines.kinostats.ui.screens.lists.ListsScreen
+import com.mooncowpines.kinostats.ui.screens.log.LogScreen
+import com.mooncowpines.kinostats.ui.screens.logDetail.LogDetailScreen
 import com.mooncowpines.kinostats.ui.screens.stats.StatsScreen
-import com.mooncowpines.kinostats.retrotest.*
-import com.mooncowpines.kinostats.ui.screens.MovieDetail.MovieDetailScreen
+import com.mooncowpines.kinostats.ui.screens.movieDetail.MovieDetailScreen
+import com.mooncowpines.kinostats.ui.screens.search.SearchScreen
+import com.mooncowpines.kinostats.ui.screens.wrapped.WrappedScreen
+
 
 @Composable
-fun NavGraph(modifier: Modifier = Modifier, navController: NavHostController) {
+fun NavGraph(
+    modifier: Modifier = Modifier,
+    navController: NavHostController,
+    startDestination: String) {
 
     NavHost(
         navController = navController,
-        startDestination = Route.Login.path,
+        startDestination = startDestination,
         modifier = modifier
     ) {
-
         composable(Route.Login.path) {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate(Route.Register.path) },
@@ -39,7 +45,6 @@ fun NavGraph(modifier: Modifier = Modifier, navController: NavHostController) {
                     }
                 },
                 onNavigateToRecover = { navController.navigate(Route.Recovery.path)},
-                onNavigateToReset = { navController.navigate(Route.Reset.path)},
             )
         }
 
@@ -56,11 +61,17 @@ fun NavGraph(modifier: Modifier = Modifier, navController: NavHostController) {
 
         composable(Route.Recovery.path) {
             RecoveryScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToReset = { email ->
+                    navController.navigate(Route.Reset.createRoute(email))
+                }
             )
         }
 
-        composable(Route.Reset.path) {
+        composable(
+            Route.Reset.path,
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+            ) {
             ResetScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToLogin = {
@@ -82,12 +93,19 @@ fun NavGraph(modifier: Modifier = Modifier, navController: NavHostController) {
             )
         }
 
-        composable(Route.Home.path) {
+        composable(Route.Home.path) { backStackEntry ->
             HomeScreen(
-                movies = FakeMovieApi.allMoviesSync,
-                movie = FakeMovieApi.getMovieByIdSync(5) ?: FakeMovieApi.allMoviesSync.first(),
                 onMovieClick = { movieId ->
                     navController.navigate(Route.MovieDetail.createRoute(movieId))
+                },
+                onSearchSubmit = { query ->
+                    navController.navigate(Route.Search.createRoute(query))
+                },
+                onNavigateToWatchlist = {
+                    navController.navigate(Route.Lists.path)
+                },
+                onNavigateToLogs = {
+                    navController.navigate(Route.Logs.path)
                 }
             )
         }
@@ -97,7 +115,7 @@ fun NavGraph(modifier: Modifier = Modifier, navController: NavHostController) {
                 onNavigateToAccountInfo = {
                     navController.navigate(Route.Change.path)
                 },
-                onLogout = {
+                onNavigateToLogin = {
                     navController.navigate(Route.Login.path) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -109,48 +127,87 @@ fun NavGraph(modifier: Modifier = Modifier, navController: NavHostController) {
             StatsScreen(
                onMovieClick =  { movieId ->
                     navController.navigate(Route.MovieDetail.createRoute(movieId))
+                },
+                onNavigateToWrapped = { year ->
+                    navController.navigate(Route.Wrapped.createRoute(year))
                 }
             )
         }
 
-        composable(Route.Test.path) {
-            PostScreen(
-
+        composable(Route.Logs.path) {
+            LogScreen(
+                onNavigateToLogDetail = { movieId, logId ->
+                    navController.navigate(Route.LogDetail.createRoute(movieId, logId))
+                },
             )
         }
 
         composable(
             route = Route.MovieDetail.path,
             arguments = listOf(navArgument("movieId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getInt("movieId") ?: 1
-            val movie = FakeMovieApi.getMovieByIdSync(movieId)
-
-            if (movie != null) {
+        ) {
                 MovieDetailScreen(
-                    movie = movie,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToLog = { id ->
-                        navController.navigate(Route.Review.createRoute(id))
-                    }
+                        navController.navigate(Route.LogDetail.createRoute(id))
+                    },
+                )
+        }
+
+
+        composable(
+            route = Route.LogDetail.path,
+            arguments = listOf(navArgument("movieId") { type = NavType.IntType })
+        ) {
+                LogDetailScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
+
+        composable(
+            route = Route.Search.path,
+            arguments = listOf(navArgument("query") { type = NavType.StringType })
+        ) {
+            SearchScreen(
+                onMovieClick = { movieId ->
+                    navController.navigate(Route.MovieDetail.createRoute(movieId))
+                },
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Route.Lists.path) {
+            ListsScreen(
+                onNavigateToListDetail = { listId ->
+                    navController.navigate(Route.ListDetail.createRoute(listId))
+                }
+            )
         }
 
         composable(
-            route = Route.Review.path,
-            arguments = listOf(navArgument("movieId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val movieId = backStackEntry.arguments?.getInt("movieId") ?: 1
-            val movie = FakeMovieApi.getMovieByIdSync(movieId)
+            route = Route.ListDetail.path,
+            arguments = listOf(navArgument("listId") { type = NavType.LongType })
+        ) {
+            ListDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onMovieClick = { movieId ->
+                    navController.navigate(Route.MovieDetail.createRoute(movieId))
+                }
+            )
+        }
 
-            if (movie != null) {
-                ReviewScreen(
-                    movie = movie,
-                    onNavigateBack = { navController.popBackStack() },
+        composable(
+            route = Route.Wrapped.path,
+            arguments = listOf(
+                navArgument("year") { type = NavType.IntType },
+            )
+        ) {
+            WrappedScreen(
+                onClose = { navController.popBackStack() }
+            )
+        }
 
-                )
-            }
         }
     }
-}

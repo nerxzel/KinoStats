@@ -12,42 +12,87 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mooncowpines.kinostats.ui.components.KinoCountryPieChart
 
-import com.mooncowpines.kinostats.ui.components.KinoLastSeenCard
-import com.mooncowpines.kinostats.ui.components.KinoTimeSummaryRow
-import com.mooncowpines.kinostats.ui.components.KinoTopListColumn
-import com.mooncowpines.kinostats.ui.components.KinoWeeklyBarChart
+import com.mooncowpines.kinostats.ui.components.KinoDateSelector
+import com.mooncowpines.kinostats.ui.components.KinoDecadeLineChart
+import com.mooncowpines.kinostats.ui.components.KinoGenreBarChart
+import com.mooncowpines.kinostats.ui.components.KinoRatingBarChart
+import com.mooncowpines.kinostats.ui.components.KinoSummaryCards
+import com.mooncowpines.kinostats.ui.components.KinoTopList
+import com.mooncowpines.kinostats.ui.theme.KinoBlack
 import com.mooncowpines.kinostats.ui.theme.KinoSpacing
 import com.mooncowpines.kinostats.ui.theme.KinoYellow
 import com.mooncowpines.kinostats.ui.theme.KinoWhite
-
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun StatsScreen(
-    viewModel: StatsScreenViewModel = viewModel(),
-    onMovieClick: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: StatsScreenViewModel = hiltViewModel(),
+    onMovieClick: (Long) -> Unit,
+    onNavigateToWrapped: (Int) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+
+    StatsContent(
+        state = state,
+        onMovieClick = onMovieClick,
+        modifier = modifier,
+        onRefresh = { viewModel.loadStatsOnly() },
+        onFilterChange = { year, month -> viewModel.updateFilter(year, month) },
+        onNavigateToWrapped = onNavigateToWrapped
+        )
+}
+
+@Composable
+fun StatsContent(
+    state: StatsScreenState,
+    onMovieClick: (Long) -> Unit,
+    onFilterChange: (Int, Int?) -> Unit,
+    onRefresh: () -> Unit,
+    onNavigateToWrapped: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val scrollState = rememberScrollState()
 
-    if (state.isLoading) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = KinoYellow)
-        }
-    } else {
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            coroutineScope.launch {
+                isRefreshing = true
+                onRefresh()
+
+                delay(1000)
+
+                isRefreshing = false
+            }
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
 
         Column(
             modifier = modifier
@@ -57,97 +102,153 @@ fun StatsScreen(
         ) {
             Spacer(modifier = Modifier.height(KinoSpacing.medium))
 
-            Column {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
                 Text(
-                    text = "Last seen...",
-                    color = KinoWhite,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                HorizontalDivider(
-                    modifier = Modifier.width(150.dp),
-                    color = KinoYellow,
-                    thickness = 2.dp
-                )
-                Spacer(modifier = Modifier.height(KinoSpacing.mediumSmall))
-
-                state.lastSeenMovie?.let { movie ->
-                    KinoLastSeenCard(
-                        movie = movie,
-                        onClick = { id -> onMovieClick(id) }
-                    )
-                } ?: run {
-                    Text("Aún no tienes actividad.", color = KinoWhite.copy(alpha = 0.7f))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
-
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Statistics",
+                    text = "My Stats",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = KinoWhite,
+                    color = KinoYellow,
                     modifier = Modifier.padding(bottom = KinoSpacing.medium)
                 )
             }
 
             Text(
-                text = "Time Watched this Year",
+                text = "Select a year and/or a month",
                 fontSize = 18.sp,
                 color = KinoWhite.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = KinoSpacing.medium)
             )
 
-            KinoWeeklyBarChart(
-                data = state.weeklyWatchData,
-                barColor = KinoYellow
+            KinoDateSelector(
+                selectedYear = state.selectedYear,
+                selectedMonth = state.selectedMonth,
+                onFilterChange = onFilterChange
             )
 
-            Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+            Spacer(modifier = Modifier.height(KinoSpacing.medium))
 
-            KinoTimeSummaryRow(label = "Today", value = state.todayWatchTime)
-            Spacer(modifier = Modifier.height(KinoSpacing.small))
-            KinoTimeSummaryRow(label = "Last 7 days", value = state.last7DaysWatchTime)
+            if (state.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(top = 100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = KinoYellow)
+                }
+            } else {
 
-            Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+                val statsData = state.stats
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                KinoTopListColumn(
-                    title = "Top directors",
-                    items = state.topDirectors,
-                    modifier = Modifier.weight(1f)
-                )
-                KinoTopListColumn(
-                    title = "Top genres",
-                    items = state.topGenres,
-                    modifier = Modifier.weight(1f)
-                )
+                if (statsData != null) {
+                    val hasData = statsData.totalMovies > 0
+
+                    if (!hasData) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 80.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "🍿",
+                                    fontSize = 60.sp,
+                                    modifier = Modifier.padding(bottom = KinoSpacing.medium)
+                                )
+                                Text(
+                                    text = "No movies watched yet!",
+                                    color = KinoWhite,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+
+                        Button(
+                            onClick = { onNavigateToWrapped(state.selectedYear) },
+                            colors = ButtonDefaults.buttonColors(containerColor = KinoYellow),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                        ) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            val periodName = if (state.selectedMonth != null) "Month" else "Year"
+                            Text(
+                                text = "See Your Kino Wrapped for this $periodName",
+                                color = KinoBlack,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+
+                        KinoSummaryCards(
+                            movies = statsData.totalMovies,
+                            minutes = statsData.totalMinutes,
+                            hours = statsData.totalHours,
+                        )
+
+                        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+
+                        if (statsData.genres.isNotEmpty()) {
+                            KinoGenreBarChart(
+                                genres = statsData.genres,
+                                maxMovieCount = state.genreMaxMovieCount
+                            )}
+
+                        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+
+                        if (statsData.countries.isNotEmpty()) {
+                        KinoCountryPieChart(countries = statsData.countries)}
+
+                        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+
+                        if (statsData.ratings.isNotEmpty()) {
+                        KinoRatingBarChart(ratings = statsData.ratings)}
+
+                        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+
+                        if (statsData.decades.isNotEmpty()) {
+                        KinoDecadeLineChart(decades = statsData.decades)}
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            if (statsData.topActors.isNotEmpty()){
+                            KinoTopList(
+                                title = "Top Actors",
+                                items = statsData.topActors.sortedByDescending { it.value }.take(5),
+                                modifier = Modifier.weight(1f)
+                            )}
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            if (statsData.topDirectors.isNotEmpty()) {
+                            KinoTopList(
+                                title = "Top Directors",
+                                items = statsData.topDirectors.sortedByDescending { it.value }
+                                    .take(5),
+                                modifier = Modifier.weight(1f)
+                            )
+                            }
+                        }
+                    }
+                }else if (state.errorMsg != null) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = state.errorMsg, color = Color.Red)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
+                    }
+                }
             }
-
-            Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
-
-            Column {
-                Text(
-                    text = "Most viewed film",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KinoWhite
-                )
-                Text(
-                    text = "${state.mostViewedFilm} - Viewed ${state.mostViewedCount} times",
-                    fontSize = 16.sp,
-                    color = KinoWhite.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = KinoSpacing.small)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(KinoSpacing.extraLarge))
         }
-    }
-}

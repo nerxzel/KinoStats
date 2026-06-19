@@ -1,5 +1,6 @@
 package com.mooncowpines.kinostats.ui.screens.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +16,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,10 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mooncowpines.kinostats.ui.components.ProfileOptionItem
 
 import com.mooncowpines.kinostats.ui.theme.KinoBlack
 import com.mooncowpines.kinostats.ui.theme.KinoWhite
@@ -34,13 +39,37 @@ import com.mooncowpines.kinostats.ui.theme.KinoDarkGray
 
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileScreenViewModel = viewModel(),
+    modifier: Modifier = Modifier,
+    viewModel: ProfileScreenViewModel = hiltViewModel(),
+    onNavigateToAccountInfo: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadUser()
+    }
+
+    ProfileContent(
+        state = state,
+        onNavigateToAccountInfo = onNavigateToAccountInfo,
+        onLogout = {
+            viewModel.logout()
+            onNavigateToLogin()
+        },
+        modifier = modifier
+    )
+
+}
+
+@Composable
+fun ProfileContent(
+    state: ProfileScreenState,
     onNavigateToAccountInfo: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -49,15 +78,12 @@ fun ProfileScreen(
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
-
         Text(
-            text = "PROFILE",
-            color = Color.Gray,
-            fontSize = 13.sp,
+            text = "My Profile",
+            color = KinoYellow,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 16.dp, top = 32.dp)
         )
 
         Row(
@@ -89,24 +115,24 @@ fun ProfileScreen(
             Column {
                 if (state.isLoading) {
                     CircularProgressIndicator(color = KinoYellow)
-                } else if (state.errorMsg != null) {
-                    Text(text = state.errorMsg!!, color = Color.Red)
                 } else {
-                Text(text = state.userName,
-                    color = KinoWhite,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold)
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                if (state.isLoading) {
-                    CircularProgressIndicator(color = KinoYellow)
-                } else if (state.errorMsg != null) {
-                    Text(text = state.errorMsg!!, color = Color.Red)
-                } else {
-                    Text(text = state.email,
-                        color = KinoWhite,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold)
+                    state.errorMsg?.let { error ->
+                        Text(text = error, color = Color.Red)
+                    } ?: run {
+                        Text(
+                            text = state.userName,
+                            color = KinoWhite,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = state.email,
+                            color = KinoWhite,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
                 }
             }
         }
@@ -130,15 +156,19 @@ fun ProfileScreen(
         ) {
             ProfileOptionItem(
                 icon = Icons.Outlined.Share,
-                text = "Share your statistics",
-                onClick = { /* TODO */ }
+                text = "Upgrade your account",
+                onClick = { Toast.makeText(
+                    context,
+                    "Concept test, payment logic would be implemented here",
+                    Toast.LENGTH_SHORT
+                ).show() }
             )
 
             HorizontalDivider(color = KinoBlack, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
 
             ProfileOptionItem(
                 icon = Icons.Outlined.Info,
-                text = "Change your password",
+                text = "Update your account",
                 onClick = onNavigateToAccountInfo
             )
         }
@@ -163,45 +193,3 @@ fun ProfileScreen(
     }
 }
 
-@Composable
-fun ProfileOptionItem(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit,
-    isDestructive: Boolean = false
-) {
-    val tintColor = if (isDestructive) Color(0xFFE57373) else KinoWhite
-    val iconBgColor = if (isDestructive) Color(0xFFE57373).copy(alpha = 0.1f) else Color.DarkGray.copy(alpha = 0.3f)
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 16.dp, horizontal = 20.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconBgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = tintColor,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = text,
-            color = tintColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}

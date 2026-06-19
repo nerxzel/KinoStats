@@ -9,15 +9,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-import com.mooncowpines.kinostats.data.FakeAuthApi.sendRecoveryEmail
+import com.mooncowpines.kinostats.domain.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class RecoveryScreenViewModel : ViewModel(){
+@HiltViewModel
+class RecoveryScreenViewModel @Inject constructor(
+    private val authRepository: AuthRepository
+) : ViewModel() {
     private val _state = MutableStateFlow(RecoveryScreenState())
     val state: StateFlow<RecoveryScreenState> = _state.asStateFlow()
 
     //Functions to track text field value
     fun onEmailChange(newEmail: String) {
         _state.update { it.copy(email = newEmail, emailError = null, errorMsg = null) }
+    }
+
+    fun onNavigationDone() {
+        _state.update { it.copy(success = false) }
     }
 
     //Triggers an email recovery attempt
@@ -39,12 +48,16 @@ class RecoveryScreenViewModel : ViewModel(){
         viewModelScope.launch {
             _state.update { it.copy(isSubmitting = true, errorMsg = null) }
 
-            val isSuccess = sendRecoveryEmail(currentState.email)
-
-            if (isSuccess) {
+            val errorMessage = authRepository.sendRecoveryEmail(currentState.email)
+            if (errorMessage == null) {
                 _state.update { it.copy(isSubmitting = false, success = true) }
             } else {
-                _state.update { it.copy(isSubmitting = false, errorMsg = "This email doesn't have an account associated") }
+                _state.update {
+                    it.copy(
+                        isSubmitting = false,
+                        errorMsg = errorMessage
+                    )
+                }
             }
         }
     }

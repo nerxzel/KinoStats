@@ -7,8 +7,6 @@ import java.util.Set;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -27,26 +25,18 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Film {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
-    private Long apiId;
 
     @Column(nullable = false)
     private String title;
 
     private Integer releaseYear;
 
-    private String director;
-
-    private String cinematographer;
-
     private int lengthInMinutes;
 
-    private String countryOfOrigin;
-
     private LocalDate dateAddedToDB;
+
+    private String posterPath;
 
     @ManyToMany(cascade = {CascadeType.MERGE})
     @JoinTable(

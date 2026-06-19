@@ -1,23 +1,16 @@
 package com.mooncowpines.KinoStats.Service;
 
-import java.time.LocalDate;
+import com.mooncowpines.KinoStats.DTO.LoginRequest;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.mooncowpines.KinoStats.DTO.LogDTO;
 import com.mooncowpines.KinoStats.DTO.LogRequestDTO;
-import com.mooncowpines.KinoStats.DTO.TmdbMovieResponse;
-import com.mooncowpines.KinoStats.Model.Country;
 import com.mooncowpines.KinoStats.Model.Film;
-import com.mooncowpines.KinoStats.Model.Genre;
 import com.mooncowpines.KinoStats.Model.Log;
 import com.mooncowpines.KinoStats.Model.User;
-import com.mooncowpines.KinoStats.Repository.CountryRepository;
-import com.mooncowpines.KinoStats.Repository.FilmRepository;
-import com.mooncowpines.KinoStats.Repository.GenreRepository;
 import com.mooncowpines.KinoStats.Repository.LogRepository;
 import com.mooncowpines.KinoStats.Repository.UserRepository;
 
@@ -27,91 +20,73 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class LogService {
-    
-    private final LogRepository logRepository;
-    private final FilmRepository filmRepository;
-    private final UserRepository userRepository;
-    private final TmdbService tmdbService;
-    private final CountryRepository countryRepository;
-    private final GenreRepository genreRepository;
 
-    public List<Log> getLogs(){
+    private final LogRepository logRepository;
+    private final FilmService filmRepository;
+    private final UserRepository userRepository;
+
+    public List<Log> getLogs() {
         return logRepository.findAll();
     }
 
-    public List<Log> getLogsByUserId(Long id){
-        return logRepository.findByUserId(id);
+    public List<LogDTO> getLogsByUserId(Long id) {
+        List<Log> logs = logRepository.findByUserIdOrderByDateDesc(id);
+        List<LogDTO> logsDTDtos = logs.stream()
+                .map(LogDTO::logToDto)
+                .toList();
+        return logsDTDtos;
     }
 
-    public Optional<Log> getLogById(Long id){
-        return logRepository.findById(id);
+    public Optional<LogDTO> getLogById(Long id) {
+        return logRepository.findById(id)
+            .map(LogDTO::logToDto);
     }
 
-    public void addLog(LogRequestDTO logRequest){
+    public void addLog(LogRequestDTO logRequest) {
         User user = userRepository.findById(logRequest.getUserId())
-            .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        Film film = filmRepository.findByApiId(logRequest.getFilmId())
-            .orElseGet(() -> fetchAndSaveFromTmdb(logRequest.getFilmId()));
-        
+        Film film = filmRepository.findOrFetchAndSave(logRequest.getFilmId());
+
         Log log = new Log();
         log.setDate(logRequest.getDate());
         log.setReview(logRequest.getReview());
-        log.setRating(logRequest.getRating());
+        if (logRequest.getRating() != null){
+            log.setRating(Math.clamp(logRequest.getRating(), 0.5f, 5));
+        }
+        else{
+            log.setRating(null);
+        }
         log.setFilm(film);
         log.setUser(user);
         log.setFirstWatch(logRequest.getFirstWatch());
-        
+
         logRepository.save(log);
     }
 
-    private Film fetchAndSaveFromTmdb(Long tmdbId) {
-        TmdbMovieResponse response = tmdbService.fetchMovie(tmdbId);
-
-        Film film = new Film();
-        film.setApiId(response.id());
-        film.setTitle(response.title());
-        film.setDateAddedToDB(LocalDate.now());
-
-        if (response.releaseDate() != null && !response.releaseDate().isEmpty()) {
-            film.setReleaseYear(LocalDate.parse(response.releaseDate()).getYear());
-        }
-
-        if (response.runtime() != null) {
-            film.setLengthInMinutes(response.runtime());
-        }
-
-        if (response.productionCountries() != null) {
-            Set<Country> countries = response.productionCountries().stream()
-                .map(pc -> countryRepository.findById(pc.iso()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toSet());
-            film.setCountries(countries);
-        }
-
-        if (response.genres() != null){
-            Set<Genre> genres = response.genres().stream()
-                .map(g -> genreRepository.findById(g.id()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toSet());
-            film.setGenres(genres);
-        }
-
-        return filmRepository.save(film);
-    }
-
-    public void updateLog(Log log){
+    public void updateLog(Log log) {
         logRepository.save(log);
     }
 
     public Log updateLog(Long id, LogRequestDTO request) {
-        Log log = getLogById(id).orElseThrow();
+        Log log = logRepository.findById(id).orElseThrow();
         log.setDate(request.getDate());
         log.setReview(request.getReview());
-        log.setRating(request.getRating());
+        if (request.getRating() != null){
+            log.setRating(Math.clamp(request.getRating(), 0.5f, 5));
+        }
+        else{
+            log.setRating(null);
+        }
         log.setFirstWatch(request.getFirstWatch());
         return logRepository.save(log);
+    }
+
+    public void deleteLog(Long id){
+        logRepository.deleteById(id);
+    }
+
+    public List<Log> findLatestLogs(Long id){
+        return logRepository.findTop6ByUserIdOrderByDateDesc(id);
     }
 }

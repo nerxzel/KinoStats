@@ -8,13 +8,17 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.mooncowpines.KinoStats.DTO.UserDetailsUpdateDTO;
+import com.mooncowpines.KinoStats.DTO.UserPasswordUpdateDTO;
+import com.mooncowpines.KinoStats.Exceptions.ValidationException;
 import com.mooncowpines.KinoStats.Model.User;
 import com.mooncowpines.KinoStats.Service.UserService;
+
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,9 +34,6 @@ public class UserController {
     
     @Autowired
     private UserService userService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     @GetMapping("/all")
     public ResponseEntity<?> getUsers(){
@@ -57,28 +58,30 @@ public class UserController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addUser(/*@Valid*/ @RequestBody User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userService.addUser(user);
-        URI location = ServletUriComponentsBuilder
-                        .fromCurrentRequest()
-                        .path("/{id}")
-                        .buildAndExpand(user.getId())
-                        .toUri();
-
-        return ResponseEntity.created(location).body(user);
+    public ResponseEntity<?> addUser(@Valid @RequestBody User user) {
+        try {
+            userService.addUser(user);
+            URI location = ServletUriComponentsBuilder
+                    .fromCurrentRequest()
+                    .path("/{id}")
+                    .buildAndExpand(user.getId())
+                    .toUri();
+            return ResponseEntity.created(location).body(user);
+        } catch (ValidationException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user) {
-        User newUser = new User();
-        newUser.setId(user.getId());
-        newUser.setUsername(user.getUsername());
-        newUser.setEmail(user.getEmail());
-        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
-        
-        userService.addUser(newUser);
-        return ResponseEntity.ok(newUser);
+    @PutMapping("/{id}/details")
+    public ResponseEntity<Void> updateUser(@PathVariable Long id, @Valid @RequestBody UserDetailsUpdateDTO dto) {
+        userService.updateUser(id, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/password")
+    public ResponseEntity<Void> updatePassword(@PathVariable Long id, @Valid @RequestBody UserPasswordUpdateDTO dto) {
+        userService.updatePassword(id, dto);
+        return ResponseEntity.ok().build();
     }
     
     // @DeleteMapping("/{id}")

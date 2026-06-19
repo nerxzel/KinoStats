@@ -1,46 +1,129 @@
-package com.mooncowpines.kinostats.ui.screens.MovieDetail
+package com.mooncowpines.kinostats.ui.screens.movieDetail
 
-import androidx.compose.foundation.Image
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mooncowpines.kinostats.data.Movie
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mooncowpines.kinostats.domain.model.MovieList
 import com.mooncowpines.kinostats.ui.components.KinoFAB
+import com.mooncowpines.kinostats.ui.components.KinoListSelectionSheet
 import com.mooncowpines.kinostats.ui.theme.KinoBlack
+import com.mooncowpines.kinostats.ui.theme.KinoLighterGray
 import com.mooncowpines.kinostats.ui.theme.KinoWhite
 import com.mooncowpines.kinostats.ui.theme.KinoYellow
+import coil.compose.AsyncImagePainter
+import coil.request.ImageRequest
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import com.mooncowpines.kinostats.ui.components.DetailRow
+import com.mooncowpines.kinostats.ui.components.KinoFallBackCoverCard
 
 @Composable
 fun MovieDetailScreen(
-    movie: Movie,
+    modifier: Modifier = Modifier,
+    viewModel: MovieDetailViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToLog: (Int) -> Unit,
+    onNavigateToLog: (Long) -> Unit,
+) {
+    val state by viewModel.state.collectAsState()
+
+    when (val currentState = state) {
+        is MovieDetailState.Loading -> {
+            Box(modifier = modifier.fillMaxSize().background(KinoBlack), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = KinoYellow)
+            }
+        }
+        is MovieDetailState.Error -> {
+            Box(modifier = modifier.fillMaxSize().background(KinoBlack), contentAlignment = Alignment.Center) {
+                Text(currentState.message, color = Color.Red)
+            }
+        }
+        is MovieDetailState.Success -> {
+            MovieDetailContent(
+                state = currentState,
+                onNavigateBack = onNavigateBack,
+                onNavigateToLog = onNavigateToLog,
+                onToggleFabMenu = { viewModel.toggleFabMenu() },
+                onDismissFabMenu = { viewModel.dismissFabMenu() },
+                onOpenListSheet = { viewModel.onOpenListSheet() },
+                onDismissListSheet = { viewModel.dismissListSheet() },
+                onAddFilmToList = { list -> viewModel.addFilmToList(list) },
+                onClearListMessage = { viewModel.clearListMessage() },
+                modifier = modifier
+            )
+        }
+    }
+}
+@Composable
+fun MovieDetailContent(
+    state: MovieDetailState.Success,
+    onNavigateBack: () -> Unit,
+    onNavigateToLog: (Long) -> Unit,
+    onToggleFabMenu: () -> Unit,
+    onDismissFabMenu: () -> Unit,
+    onOpenListSheet: () -> Unit,
+    onDismissListSheet: () -> Unit,
+    onAddFilmToList: (MovieList) -> Unit,
+    onClearListMessage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val movie = state.movie
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    LaunchedEffect(state.listActionMessage) {
+        state.listActionMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            onClearListMessage()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = KinoBlack,
         floatingActionButton = {
-            KinoFAB(onClick = { onNavigateToLog(movie.id) })
+            Box {
+                KinoFAB(onClick = onToggleFabMenu)
+
+                DropdownMenu(
+                    expanded = state.isFabMenuExpanded,
+                    onDismissRequest = onDismissFabMenu,
+                    modifier = Modifier.background(KinoLighterGray)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Add Log", color = KinoWhite) },
+                        onClick = {
+                            onDismissFabMenu()
+                            onNavigateToLog(movie.id)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Save to List", color = KinoWhite) },
+                        onClick = onOpenListSheet
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -50,24 +133,40 @@ fun MovieDetailScreen(
                 .verticalScroll(scrollState)
                 .padding(paddingValues)
         ) {
-            // --- 1. CABECERA (Banner, Póster y Título) ---
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp) // Altura total de la sección superior
+                    .height(280.dp)
             ) {
-                // Imagen de Banner
-                Image(
-                    painter = painterResource(id = movie.posterUrl),
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(movie.backDropUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = "Banner",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
                         .align(Alignment.TopCenter)
-                )
+                ) {
+                    val state = painter.state
+                    when {
+                        movie.backDropUrl.isEmpty() || state is AsyncImagePainter.State.Error -> {
+                            KinoFallBackCoverCard(modifier = Modifier.fillMaxSize())
+                        }
 
-                // Gradiente para fundir el banner con el fondo oscuro
+                        state is AsyncImagePainter.State.Loading -> {
+                            Box(modifier = Modifier.fillMaxSize().background(KinoLighterGray))
+                        }
+
+                        else -> {
+                            SubcomposeAsyncImageContent()
+                        }
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -81,17 +180,15 @@ fun MovieDetailScreen(
                         )
                 )
 
-                // Botón de Volver
                 IconButton(
                     onClick = onNavigateBack,
                     modifier = Modifier
                         .padding(top = 32.dp, start = 8.dp)
                         .align(Alignment.TopStart)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = KinoWhite)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = KinoWhite)
                 }
 
-                // Póster y metadatos superpuestos
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -99,20 +196,36 @@ fun MovieDetailScreen(
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    // Portada
-                    Image(
-                        painter = painterResource(id = movie.posterUrl),
-                        contentDescription = "Portada",
+                    SubcomposeAsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(movie.posterUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Cover",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .width(105.dp)
                             .height(155.dp)
                             .clip(RoundedCornerShape(8.dp))
-                    )
+                    ) {
+                        val asyncImageState = painter.state
+                        when {
+                            movie.backDropUrl.isEmpty() || asyncImageState is AsyncImagePainter.State.Error -> {
+                                KinoFallBackCoverCard(modifier = Modifier.fillMaxSize())
+                            }
 
+                            asyncImageState is AsyncImagePainter.State.Loading -> {
+                                Box(modifier = Modifier.fillMaxSize().background(KinoLighterGray))
+                            }
+
+                            else -> {
+                                SubcomposeAsyncImageContent()
+                            }
+                        }
+                    }
+                    
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Título, Año y Duración
                     Column(modifier = Modifier.padding(bottom = 8.dp)) {
                         Text(
                             text = movie.title,
@@ -123,66 +236,65 @@ fun MovieDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "${movie.releaseYear}  •  ${movie.duration}",
-                            color = Color.LightGray,
+                            text = "• Release date: ${movie.releaseDate}",
                             fontSize = 14.sp
                         )
+                        Text(
+                            text = "• Total minutes: ${movie.duration}",
+                            fontSize = 14.sp
+                        )
+
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 2. SINOPSIS ---
-            /*Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                if (movie.tagLine.isNotEmpty()) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+
                     Text(
-                        text = movie.tagLine.uppercase(),
+                        text = "Overview",
                         color = KinoYellow,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                }
+
                 Text(
-                    text = movie.synopsis,
+                    text = movie.overview,
                     color = KinoWhite,
                     fontSize = 15.sp,
                     lineHeight = 22.sp
                 )
-            }*/
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
             HorizontalDivider(thickness = 1.dp, color = Color.DarkGray.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 3. FICHA TÉCNICA ---
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
-                    text = "Ficha Técnica",
+                    text = "Film Data",
                     color = KinoWhite,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Usamos el componente modular DetailRow
                 DetailRow(label = "Director", value = movie.director)
-                DetailRow(label = "País", value = movie.originCountry)
-                DetailRow(label = "Cinematógrafo", value = movie.cinematographer)
-                DetailRow(label = "Productora", value = movie.productionCompany)
-                DetailRow(label = "Géneros", value = movie.genres.joinToString(separator = ", "))
+                DetailRow(label = "Country", value = movie.originCountry)
+                DetailRow(label = "Produced by", value = movie.productionCompany)
+                DetailRow(label = "Genres", value = movie.genres.joinToString(separator = ", "))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider(thickness = 1.dp, color = Color.DarkGray.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 4. REPARTO ---
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
-                    text = "Reparto Principal",
+                    text = "Cast",
                     color = KinoWhite,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -190,39 +302,26 @@ fun MovieDetailScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = movie.actors.joinToString(separator = ", "),
+                    text = movie.actors,
                     color = Color.LightGray,
                     fontSize = 15.sp,
                     lineHeight = 22.sp
                 )
             }
 
-            // Espacio final para asegurar que el FAB no tape el texto al scrollear
             Spacer(modifier = Modifier.height(100.dp))
+        }
+
+        if (state.isListSheetOpen) {
+            KinoListSelectionSheet(
+                lists = state.userLists,
+                isLoading = state.isFetchingLists,
+                onDismiss = onDismissListSheet,
+                onListSelected = { selectedList ->
+                    onAddFilmToList(selectedList)
+                }
+            )
         }
     }
 }
 
-// --- COMPONENTE AUXILIAR PARA LA FICHA TÉCNICA ---
-@Composable
-fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp),
-            verticalAlignment = Alignment.Top // Alinea arriba por si el texto ocupa 2 líneas
-    ) {
-        Text(
-            text = label,
-            color = Color.Gray,
-            fontSize = 14.sp,
-            modifier = Modifier.weight(0.35f)
-        )
-        Text(
-            text = value,
-            color = KinoWhite,
-            fontSize = 14.sp,
-            modifier = Modifier.weight(0.65f)
-        )
-    }
-}

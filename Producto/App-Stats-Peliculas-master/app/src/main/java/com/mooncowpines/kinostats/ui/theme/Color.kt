@@ -1,5 +1,6 @@
 package com.mooncowpines.kinostats.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 val KinoWhite = Color(0xFFFFFFFF)
@@ -13,6 +14,23 @@ val KinoBlack = Color(0xFF121212)
 
 val KinoYellow = Color(0xFFFFC040)
 val KinoDarkYellow = Color(0xFFFB9600)
+
+val KinoYellowVerticalGradient = Brush.verticalGradient(
+    colors = listOf(
+        KinoYellow.copy(alpha = 0.55f),
+        KinoBlack,
+        KinoBlack
+    )
+)
+
+val KinoYellowHorizontalGradient = Brush.horizontalGradient(
+    colors = listOf(
+        KinoYellow.copy(alpha = 0.55f),
+        KinoYellow.copy(alpha = 0.55f),
+        KinoBlack,
+        KinoBlack
+    )
+)
 
 
 
