@@ -36,6 +36,7 @@ import com.mooncowpines.kinostats.ui.components.KinoPosterCard
 import com.mooncowpines.kinostats.ui.components.KinoLastSeenCard
 import com.mooncowpines.kinostats.ui.theme.KinoSpacing
 import com.mooncowpines.kinostats.domain.model.MovieCard
+import com.mooncowpines.kinostats.ui.components.KinoHomeCarrousel
 import com.mooncowpines.kinostats.ui.components.KinoSearchBar
 import com.mooncowpines.kinostats.ui.components.KinoSeeMoreCard
 import com.mooncowpines.kinostats.ui.components.KinoSkeletonPosterCard
@@ -147,7 +148,7 @@ fun HomeContent(
 
                 ) {
 
-                WatchlistSection(movieCards = state.watchlistMovies, onMovieClick = onMovieClick, onSeeAllClick = onNavigateToWatchlist)
+                KinoHomeCarrousel(title = "Watchlist...", movieCards = state.watchlistMovies, onMovieClick = onMovieClick, onSeeAllClick = onNavigateToWatchlist)
 
                 Spacer(modifier.height(KinoSpacing.extraLarge))
 
@@ -155,72 +156,13 @@ fun HomeContent(
 
                 Spacer(modifier.height(KinoSpacing.extraLarge))
 
-                JustWatchedSection(movieCards = state.justWatchedMovies, onMovieClick = onMovieClick, onSeeAllClick = onNavigateToLogs)
+                KinoHomeCarrousel(title = "Just Watched...",movieCards = state.justWatchedMovies, onMovieClick = onMovieClick, onSeeAllClick = onNavigateToLogs)
 
                 Spacer(modifier = Modifier.height(KinoSpacing.medium))
             }
         }
     }
     }
-}
-@Composable
-fun WatchlistSection(
-    modifier: Modifier = Modifier,
-    movieCards: List<MovieCard>,
-    onMovieClick: (Long) -> Unit,
-    onSeeAllClick: () -> Unit
-) {
-    Column(modifier = modifier) {
-
-    Column {
-        Text(
-            text = "Watchlist...",
-            color = KinoWhite,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            modifier = Modifier
-                .clickable { onSeeAllClick() }
-                .padding(start = 16.dp, bottom = 4.dp)
-        )
-
-        HorizontalDivider(
-            modifier = Modifier
-                .padding(start = 16.dp)
-                .width(150.dp),
-            color = KinoYellow,
-            thickness = 2.dp
-        )
-
-        Spacer(modifier.height(KinoSpacing.mediumSmall))
-
-        if (movieCards.isEmpty()) {
-            LazyRow(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(4) {
-                    KinoSkeletonPosterCard()
-                }
-            }
-        } else {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(movieCards) { movieCard ->
-                        KinoPosterCard(
-                            movieCard = movieCard,
-                            onClick = { id -> onMovieClick(id) },
-                            Modifier.width(110.dp).aspectRatio(2f/3f)
-                        )
-                    }
-                    item {
-                        KinoSeeMoreCard(onClick = onSeeAllClick)
-                    }
-                }
-            }
-    }
-}
 }
 
 @Composable
@@ -272,68 +214,6 @@ fun LastSeenSection(
                     movieCard = movieCard,
                     onClick = { id -> onMovieClick(id) }
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun JustWatchedSection(
-    modifier: Modifier = Modifier,
-    movieCards: List<MovieCard>,
-    onMovieClick: (Long) -> Unit,
-    onSeeAllClick: () -> Unit
-) {
-
-    Column(modifier = modifier) {
-        Column {
-                Text(
-                    text = "Just Watched...",
-                    color = KinoWhite,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    modifier = Modifier
-                        .clickable { onSeeAllClick() }
-                        .padding(start = 16.dp, bottom = 4.dp)
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier
-                        .padding(start = 16.dp)
-                        .width(150.dp),
-                    color = KinoYellow,
-                    thickness = 2.dp
-                )
-
-            Spacer(modifier.height(KinoSpacing.mediumSmall))
-
-            if (movieCards.isEmpty()) {
-                LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(4) {
-                        KinoSkeletonPosterCard()
-                    }
-                }
-            } else {
-
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(movieCards) { movieCards ->
-                        KinoPosterCard(
-                            movieCard = movieCards,
-                            onClick = { id -> onMovieClick(id) },
-                            Modifier.width(110.dp).aspectRatio(2f/3f)
-                        )
-                    }
-
-                    item {
-                        KinoSeeMoreCard(onClick = onSeeAllClick)
-                    }
-                }
             }
         }
     }

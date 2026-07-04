@@ -50,7 +50,7 @@ class AuthRepositoryImpl @Inject constructor(
             val authHeader = Credentials.basic(username, pass)
             val response = api.login(authHeader)
 
-            if (response.isSuccessful) {
+           return if (response.isSuccessful) {
                 val loginResponse = response.body()
                 if (loginResponse != null) {
                     val user = User(
@@ -65,11 +65,11 @@ class AuthRepositoryImpl @Inject constructor(
 
                     _authState.value = AuthState.LOGGED_IN
 
-                    return null
-                }
-                return "Empty response from server"
+                    null
+                } else {
+                 "Empty response from server" }
             } else {
-                return response.getErrorMessage()
+                 response.getErrorMessage()
             }
         } catch (e: IOException) {
             return "Network error. Check your connection."
@@ -109,11 +109,11 @@ class AuthRepositoryImpl @Inject constructor(
 
             val response = api.register(newUserDTO)
 
-            if (response.isSuccessful) {
+            return if (response.isSuccessful) {
                 Log.d("REGISTER", "User $userName registered with email $email")
-                return login(userName, pass)
+                login(userName, pass)
             } else {
-                return response.getErrorMessage()
+                response.getErrorMessage()
             }
         } catch (e: IOException) {
             return "Network error. Check your connection."
@@ -183,11 +183,11 @@ class AuthRepositoryImpl @Inject constructor(
             val request = ForgotPasswordDTO(email = email)
             val response = api.requestPasswordReset(request)
 
-            if (response.isSuccessful) {
+            return if (response.isSuccessful) {
                 Log.d("AuthRepository", "Recovery email sent successfully")
-                return null
+                null
             } else {
-                return response.getErrorMessage()
+                response.getErrorMessage()
             }
         } catch (e: IOException) {
             return "Network error. Check your connection."
@@ -207,11 +207,11 @@ class AuthRepositoryImpl @Inject constructor(
 
             val response = api.resetPassword(request)
 
-             if (response.isSuccessful) {
+             return if (response.isSuccessful) {
                  Log.d("AuthRepository", "Password reset successfully")
-                 return null
+                 null
              } else {
-                 return response.getErrorMessage()
+                 response.getErrorMessage()
              }
          } catch (e: IOException) {
              return "Network error. Check your connection."

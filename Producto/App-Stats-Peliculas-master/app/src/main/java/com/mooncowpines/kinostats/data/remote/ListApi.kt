@@ -9,6 +9,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ListApi {
@@ -24,6 +25,12 @@ interface ListApi {
 
     @POST("api/v1/lists/add")
     suspend fun addFilmToList(@Body request: MovieListAddRequest): Response<Unit>
+
+    @PUT("api/v1/lists/{listId}")
+    suspend fun updateList(
+        @Path("listId") listId: Long,
+        @Body request: MovieListRequest
+    ): Response<MovieListDTO>
 
     @DELETE("api/v1/lists/{listId}")
     suspend fun deleteList(@Path("listId") listId: Long): Response<Void>

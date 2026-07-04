@@ -40,7 +40,6 @@ fun ChangeScreen(
     modifier: Modifier = Modifier,
     viewModel: ChangeScreenViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToHome: () -> Unit
 ) {
 
     val state by viewModel.state.collectAsState()

@@ -12,5 +12,9 @@ data class ListsScreenState(
 
     val showCreateDialog: Boolean = false,
     val newListName: String = "",
-    val isCreating: Boolean = false
+    val isCreating: Boolean = false,
+
+    val listToRename: MovieList? = null,
+    val renameText: String = "",
+    val isRenaming: Boolean = false
 )

@@ -1,8 +1,22 @@
 package com.mooncowpines.kinostats.utils
 
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.core.content.FileProvider
+import io.mockk.*
+import org.junit.After
+import org.junit.Before
+import java.io.File
+import java.io.FileOutputStream
 
 class ValidatorsTest {
 
@@ -132,6 +146,61 @@ class ValidatorsTest {
             "0h 45m",
             result2
         )
+    }
+
+    @Test
+    fun `CP_getUserNameError checks business rules`() {
+        assertEquals("User name cannot be empty", getUserNameError(""))
+        assertEquals("User name cannot have less than 5 characters", getUserNameError("Kino"))
+        assertEquals("User name only can have letters", getUserNameError("Kino123"))
+        assertEquals("This user name is reserved", getUserNameError("adminUser"))
+        assertNull(getUserNameError("ValidName"))
+    }
+
+    @Test
+    fun `CP_getCodeError and getCurrentPassError validate empty strings`() {
+        assertEquals("This field cannot be empty", getCodeError(""))
+        assertNull(getCodeError("123456"))
+
+        assertEquals("This field cannot be empty", getCurrentPassError("   "))
+        assertNull(getCurrentPassError("MyOldPass1!"))
+    }
+
+    @Test
+    fun `CP_isPassMatch validates matching rules`() {
+        assertTrue(isPassMatch("pass123", "pass123"))
+        assertFalse(isPassMatch("pass123", "wrong"))
+        assertFalse(isPassMatch("pass123", "  "))
+    }
+
+    @Test
+    fun `CP_getWatchDateError and parseSafely handle dates`() {
+        assertEquals("The log must have a date", getWatchDateError(null))
+        assertNull(getWatchDateError(LocalDate.now()))
+
+        assertNull(parseSafely(null))
+        assertNull(parseSafely("invalid-date"))
+        assertEquals(LocalDate.of(2026, 7, 3), parseSafely("2026-07-03"))
+    }
+
+    @Test
+    fun `CP_formatLocalDateToString works like timestamp formatter`() {
+        val date = LocalDate.of(2026, 6, 18)
+        val result = formatLocalDateToString(date, java.util.Locale.ENGLISH)
+        assertEquals("18 Jun 2026", result)
+    }
+
+
+    @Test
+    fun `CP_shareWrappedSlide catches exception safely`() {
+        val context = mockk<Context>()
+        val bitmap = mockk<Bitmap>()
+
+        every { context.cacheDir } throws RuntimeException("Forced error")
+
+        shareWrappedSlide(context, bitmap)
+
+        assertTrue(true)
     }
 
 }

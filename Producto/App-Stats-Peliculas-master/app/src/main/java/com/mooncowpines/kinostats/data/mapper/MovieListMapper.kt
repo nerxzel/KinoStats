@@ -6,9 +6,9 @@ import com.mooncowpines.kinostats.domain.model.MovieList
 fun MovieListDTO.toDomain(): MovieList {
     return MovieList(
         id = this.movieListId,
-        name = this.name ?: "Unnamed List",
-        movieCount = this.movieCount ?: 0,
+        name = this.name,
+        movieCount = this.movieCount,
         movies = this.movies?.map { it.toDomain() } ?: emptyList(),
-        isWatchList = this.isWatchList ?: false
+        isWatchList = this.isWatchList
     )
 }

@@ -5,4 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.ksp) apply false
+
+    id("org.sonarqube") version "7.3.1.8318"
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "nerxzel_KinoStats_App")
+        property("sonar.organization", "mooncow-pines")
+    }
 }

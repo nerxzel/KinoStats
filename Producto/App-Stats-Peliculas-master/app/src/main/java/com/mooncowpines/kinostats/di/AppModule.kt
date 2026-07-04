@@ -67,7 +67,10 @@ object AppModule {
             val dir = File(context.applicationInfo.dataDir, "shared_prefs")
             val prefFile = File(dir, "$prefName.xml")
             if (prefFile.exists()) {
-                prefFile.delete()
+                val isDeleted = prefFile.delete()
+                if (!isDeleted) {
+                    android.util.Log.e("AppModule", "Critical Error: Could not delete corrupted SharedPreferences file.")
+                }
             }
 
             EncryptedSharedPreferences.create(
@@ -122,7 +125,7 @@ object AppModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://3.214.228.214:8080")
+            .baseUrl("https://kinostats.duckdns.org")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

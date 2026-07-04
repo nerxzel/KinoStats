@@ -77,6 +77,24 @@ class ListRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateList(listId: Long, userId: Long, newName: String): Boolean {
+        return try {
+            val request = MovieListRequest(userId = userId, name = newName)
+            val response = api.updateList(listId, request)
+
+            if (response.isSuccessful) {
+                Log.d("ListRepository", "Lista '$newName' actualizada exitosamente")
+                true
+            } else {
+                Log.e("ListRepository", "Error al actualizar lista: ${response.errorBody()?.string()}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("ListRepository", "Error de red al actualizar lista", e)
+            false
+        }
+    }
+
     override suspend fun deleteList(listId: Long): Boolean {
         return try {
             val response = api.deleteList(listId)

@@ -102,6 +102,52 @@ class ListsScreenViewModel @Inject constructor(
         }
     }
 
+    fun onRenameIntent(movieList: MovieList) {
+        _state.update {
+            it.copy(
+                listToRename = movieList,
+                renameText = movieList.name,
+                errorMsg = null
+            )
+        }
+    }
+
+    fun onRenameTextChange(text: String) {
+        _state.update { it.copy(renameText = text) }
+    }
+
+    fun onDismissRenameDialog() {
+        _state.update { it.copy(listToRename = null, renameText = "") }
+    }
+
+    fun confirmRename() {
+        val list = _state.value.listToRename ?: return
+        val newName = _state.value.renameText
+
+        if (newName.isBlank() || newName == list.name) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isRenaming = true, errorMsg = null) }
+
+            val userId = authRepository.getCurrentUser()?.id
+
+            if (userId != null) {
+                val success = listRepository.updateList(list.id, userId, newName)
+
+                if (success) {
+                    _state.update {
+                        it.copy(isRenaming = false, listToRename = null, renameText = "")
+                    }
+                    loadLists()
+                } else {
+                    _state.update { it.copy(isRenaming = false, errorMsg = "Failed to rename list") }
+                }
+            } else {
+                _state.update { it.copy(isRenaming = false, errorMsg = "User not found") }
+            }
+        }
+    }
+
     fun deleteList() {
         val listId = _state.value.listToDelete?.id ?: return
 

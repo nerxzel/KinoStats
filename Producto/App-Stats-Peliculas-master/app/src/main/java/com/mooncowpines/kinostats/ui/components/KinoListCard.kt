@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -26,11 +27,13 @@ import androidx.compose.ui.unit.sp
 import com.mooncowpines.kinostats.domain.model.MovieList
 import com.mooncowpines.kinostats.ui.theme.KinoLighterGray
 import com.mooncowpines.kinostats.ui.theme.KinoWhite
+import com.mooncowpines.kinostats.ui.theme.KinoYellow
 
 @Composable
 fun ListCard(
     movieList: MovieList,
     onClick: () -> Unit,
+    onRenameClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     Card(
@@ -62,12 +65,21 @@ fun ListCard(
                 )
             }
             if (!movieList.isWatchList) {
-                IconButton(onClick = onDeleteClick) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete list",
-                        tint = Color.Red.copy(alpha = 0.8f)
-                    )
+                Row {
+                    IconButton(onClick = onRenameClick) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Rename list",
+                            tint = KinoYellow.copy(alpha = 0.8f)
+                        )
+                    }
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete list",
+                            tint = Color.Red.copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
         }

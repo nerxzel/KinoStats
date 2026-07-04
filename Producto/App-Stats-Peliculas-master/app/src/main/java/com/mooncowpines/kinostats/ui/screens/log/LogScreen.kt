@@ -55,7 +55,7 @@ fun LogScreen(
         }
     }
 
-    state.logToDelete?.let { log ->
+    if (state.logToDelete != null) {
         KinoDeleteDialog(
             title = "Delete Log",
             message = "Are you sure you want to delete this entry from your logs?",

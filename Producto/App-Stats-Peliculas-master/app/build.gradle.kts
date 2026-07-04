@@ -4,6 +4,11 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    id("jacoco")
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
 }
 
 android {
@@ -28,6 +33,9 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            enableUnitTestCoverage = true
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -49,8 +57,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation("androidx.navigation:navigation-compose:2.9.5")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -63,26 +71,60 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.runtime)
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.ycharts)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.hilt.android)
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.security.crypto)
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.mockito.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation(libs.ycharts)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
-    implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation("androidx.security:security-crypto-ktx:1.1.0-alpha06")
+}
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("io.mockk:mockk:1.13.8")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("app.cash.turbine:turbine:1.0.0")
-    testImplementation("org.mockito:mockito-core:5.11.0")
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*",
+        "**/*Test*.*", "android/**/*.*",
+        "**/*_Provide*.*", "**/*_Factory*.*", "**/*_MembersInjector.*",
+        "**/*_HiltModules*.*", "hilt_aggregated_deps/**", "dagger/hilt/internal/**",
+        "**/*Activity*.*",
+        "**/ui/theme/**",
+        "**/ui/components/**",
+        "**/*Screen.kt",
+        "**/*Screen.class",
+        "**/*Screen\$*.class",
+        "**/Routes*.*",
+        "**/NavGraph*.*",
+        "**/navigation/**"
+    )
+
+    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+    val mainSrc = "$projectDir/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(debugTree)
+
+    executionData.setFrom(fileTree("${layout.buildDirectory.get()}") {
+        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+    })
 }

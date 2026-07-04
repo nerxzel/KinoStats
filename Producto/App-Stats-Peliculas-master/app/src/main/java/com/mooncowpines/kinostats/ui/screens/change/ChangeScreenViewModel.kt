@@ -52,8 +52,8 @@ class ChangeScreenViewModel @Inject constructor(
             authRepository.getCurrentUser()?.let { currentUser ->
                 _state.update {
                     it.copy(
-                        userName = currentUser.userName ?: "",
-                        email = currentUser.email ?: ""
+                        userName = currentUser.userName,
+                        email = currentUser.email
                     )
                 }
             }

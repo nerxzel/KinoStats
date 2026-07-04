@@ -100,6 +100,47 @@ fun ListsScreen(
         )
     }
 
+    state.listToRename?.let { list ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissRenameDialog() },
+            containerColor = KinoBlack,
+            title = { Text(text = "Rename List", color = KinoYellow, fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Enter a new name for your list:", color = KinoWhite, modifier = Modifier.padding(bottom = 8.dp))
+                    OutlinedTextField(
+                        value = state.renameText,
+                        onValueChange = { viewModel.onRenameTextChange(it) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = KinoWhite,
+                            unfocusedTextColor = KinoWhite,
+                            focusedBorderColor = KinoYellow,
+                            cursorColor = KinoYellow
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.confirmRename() },
+                    enabled = state.renameText.isNotBlank() && state.renameText != list.name && !state.isRenaming
+                ) {
+                    if (state.isRenaming) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = KinoYellow)
+                    } else {
+                        Text("Rename", color = KinoYellow)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onDismissRenameDialog() }) {
+                    Text("Cancel", color = KinoWhite.copy(alpha = 0.7f))
+                }
+            }
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent,
@@ -118,6 +159,7 @@ fun ListsScreen(
             onNavigateToListDetail = onNavigateToListDetail,
             onDeleteClick = { list -> viewModel.onConfirmDeleteIntent(list) },
             onRefresh = { viewModel.loadLists() },
+            onRenameClick = { list -> viewModel.onRenameIntent(list) },
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -128,6 +170,7 @@ fun ListsContent(
     state: ListsScreenState,
     onNavigateToListDetail: (Long) -> Unit,
     onDeleteClick: (MovieList) -> Unit,
+    onRenameClick: (MovieList) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -193,7 +236,8 @@ fun ListsContent(
                             ListCard(
                                 movieList = list,
                                 onClick = { onNavigateToListDetail(list.id) },
-                                onDeleteClick = { onDeleteClick(list) }
+                                onDeleteClick = { onDeleteClick(list) },
+                                onRenameClick = { onRenameClick(list) }
                             )
                         }
                     }

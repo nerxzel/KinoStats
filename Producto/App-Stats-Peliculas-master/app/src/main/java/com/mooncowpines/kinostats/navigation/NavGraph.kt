@@ -85,15 +85,10 @@ fun NavGraph(
         composable(Route.Change.path) {
             ChangeScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToHome = {
-                    navController.navigate(Route.Home.path) {
-                        popUpTo(Route.Home.path) { inclusive = true }
-                    }
-                }
             )
         }
 
-        composable(Route.Home.path) { backStackEntry ->
+        composable(Route.Home.path) {
             HomeScreen(
                 onMovieClick = { movieId ->
                     navController.navigate(Route.MovieDetail.createRoute(movieId))
